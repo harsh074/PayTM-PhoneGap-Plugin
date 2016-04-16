@@ -14,7 +14,7 @@ import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
+import java.util.Iterator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,7 +61,9 @@ public class PayTM extends CordovaPlugin {
                               final String txn_amt,
                               final CallbackContext callbackContext){
 
-        paytm_service = PaytmPGService.getProductionService();
+        // paytm_service = PaytmPGService.getProductionService();
+        paytm_service = PaytmPGService.getStagingService();
+
         Map<String, String> paramMap = new HashMap<String, String>();
         paramMap.put("REQUEST_TYPE", "DEFAULT");
         paramMap.put("ORDER_ID", order_id);
@@ -85,15 +87,15 @@ public class PayTM extends CordovaPlugin {
             @Override
             public void onTransactionSuccess(Bundle inResponse) {
                 Log.i("Error", "onTransactionSuccess :" + inResponse);
-//                onTransactionSuccess :Bundle[{GATEWAYNAME=WALLET, PAYMENTMODE=PPI, TXNDATE=2015-02-19 17:01:42.0, STATUS=TXN_SUCCESS, MID=sumjkE62398232705701, CURRENCY=INR, ORDERID=5384643, TXNID=70013, IS_CHECKSUM_VALID=N, TXNAMOUNT=100.00, BANKTXNID=CC9795B5013489B9, BANKNAME=, RESPMSG=Txn Successful., RESPCODE=01, CHECKSUMHASH=8liiSa0uQ0S1lCALiQA3FsyQx6xMey9m8VrF+WZu1tTxG+72c3bU1UYZZg+j/UMS5w9F8iHXq051G4/XtVe4L7FSTk5PGnQpp4r6+QkuyWM=}]
-                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, 0));
+            // onTransactionSuccess :Bundle[{GATEWAYNAME=WALLET, PAYMENTMODE=PPI, TXNDATE=2015-02-19 17:01:42.0, STATUS=TXN_SUCCESS, MID=sumjkE62398232705701, CURRENCY=INR, ORDERID=5384643, TXNID=70013, IS_CHECKSUM_VALID=N, TXNAMOUNT=100.00, BANKTXNID=CC9795B5013489B9, BANKNAME=, RESPMSG=Txn Successful., RESPCODE=01, CHECKSUMHASH=8liiSa0uQ0S1lCALiQA3FsyQx6xMey9m8VrF+WZu1tTxG+72c3bU1UYZZg+j/UMS5w9F8iHXq051G4/XtVe4L7FSTk5PGnQpp4r6+QkuyWM=}]
+                callbackContext.success(convertBundleToJson(inResponse,"Successful"));
             }
 
             @Override
             public void onTransactionFailure(String inErrorMessage,Bundle inResponse)
             {
                 Log.i("Error","onTransactionFailure :"+inErrorMessage);
-                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, 0));
+                callbackContext.error(convertBundleToJson(inResponse,inErrorMessage));
             }
 
 
@@ -101,7 +103,7 @@ public class PayTM extends CordovaPlugin {
             public void clientAuthenticationFailed(String inErrorMessage)
             {
                 Log.i("Error","clientAuthenticationFailed :"+inErrorMessage);
-                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, 0));
+                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, "clientAuthenticationFailed: "+inErrorMessage));
             }
 
 
@@ -109,7 +111,7 @@ public class PayTM extends CordovaPlugin {
             public void networkNotAvailable() {
                 // TODO Auto-generated method stub
                 Log.i("Error","networkNotAvailable");
-                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, 0));
+                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, "networkNotAvailable"));
             }
 
             @Override
@@ -118,15 +120,37 @@ public class PayTM extends CordovaPlugin {
                 Log.i("Error","onErrorLoadingWebPage arg0  :"+arg0);
                 Log.i("Error","onErrorLoadingWebPage arg1  :"+arg1);
                 Log.i("Error","onErrorLoadingWebPage arg2  :"+arg2);
-                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, 0));
+                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, "onErrorLoadingWebPage : "+arg0));
             }
 
             @Override
             public void someUIErrorOccurred(String arg0) {
                 // TODO Auto-generated method stub
                 Log.i("Error","someUIErrorOccurred :"+arg0);
-                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, 0));
+                callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, "someUIErrorOccurred :"+arg0));
             }
         });
+    }
+    /*
+     * serializes a bundle to JSON.
+     */
+    private static JSONObject convertBundleToJson(Bundle extras, String message){
+        try{
+            JSONObject json;
+            // json = new JSONObject().put("event", "message");
+            json = new JSONObject().put("message", message);
+            Iterator<String> it = extras.keySet().iterator();
+            while (it.hasNext()){
+                String key = it.next();
+                Object value = extras.get(key);
+                json.put(key, value);
+            }
+            Log.v("Success", "extrasToJSON: " + json.toString());
+            return json;
+        }
+        catch( JSONException e){
+            Log.e("Error", "extrasToJSON: JSON exception");
+        }
+        return null;
     }
 }
