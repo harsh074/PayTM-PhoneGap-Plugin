@@ -30,6 +30,7 @@ public class PayTM extends CordovaPlugin {
     private String PAYTM_MERCHANT_ID;
     private String PAYTM_INDUSTRY_TYPE_ID;
     private String PAYTM_WEBSITE;
+    private String PAYTM_CHANNEL_ID;
 
     protected void pluginInitialize() {
         int appResId = cordova.getActivity().getResources().getIdentifier("paytm_gen_url", "string", cordova.getActivity().getPackageName());
@@ -42,13 +43,15 @@ public class PayTM extends CordovaPlugin {
         PAYTM_INDUSTRY_TYPE_ID = cordova.getActivity().getString(appResId);
         appResId = cordova.getActivity().getResources().getIdentifier("paytm_website", "string", cordova.getActivity().getPackageName());
         PAYTM_WEBSITE = cordova.getActivity().getString(appResId);
+        appResId = cordova.getActivity().getResources().getIdentifier("paytm_channel_id", "string", cordova.getActivity().getPackageName());
+        PAYTM_CHANNEL_ID = cordova.getActivity().getString(appResId);
     }
 
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext)
             throws JSONException {
         if (action.equals("startPayment")) {
             //orderid, cust_id, email, phone, txn_amt
-            startPayment(args.getString(0), args.getString(1), args.getString(2), args.getString(3), args.getString(4), callbackContext);
+            startPayment(args.getString(0), args.getString(1), args.getString(2), args.getString(3), args.getString(4), args.getString(5), callbackContext);
             return true;
         }
         return false;
@@ -59,35 +62,48 @@ public class PayTM extends CordovaPlugin {
                               final String email,
                               final String phone,
                               final String txn_amt,
+                              final String prod_env,
                               final CallbackContext callbackContext){
 
-        // paytm_service = PaytmPGService.getProductionService();
-        paytm_service = PaytmPGService.getStagingService();
-
         Map<String, String> paramMap = new HashMap<String, String>();
+        if(prod_env == "true"){
+            paytm_service = PaytmPGService.getProductionService();
+            paramMap.put("MID", PAYTM_MERCHANT_ID);
+            paramMap.put("CHANNEL_ID", PAYTM_CHANNEL_ID);
+            paramMap.put("INDUSTRY_TYPE_ID", PAYTM_INDUSTRY_TYPE_ID);
+            paramMap.put("WEBSITE", PAYTM_WEBSITE);
+        }else{
+            paytm_service = PaytmPGService.getStagingService();
+            paramMap.put("MID", "");
+            paramMap.put("CHANNEL_ID", "");
+            paramMap.put("INDUSTRY_TYPE_ID", "");
+            paramMap.put("WEBSITE", "");
+        }
+
         paramMap.put("REQUEST_TYPE", "DEFAULT");
         paramMap.put("ORDER_ID", order_id);
-        paramMap.put("MID", PAYTM_MERCHANT_ID);
         paramMap.put("CUST_ID", cust_id);
-        paramMap.put("CHANNEL_ID", "WAP");
-        paramMap.put("INDUSTRY_TYPE_ID", PAYTM_INDUSTRY_TYPE_ID);
-        paramMap.put("WEBSITE", PAYTM_WEBSITE);
-        paramMap.put("TXN_AMOUNT", txn_amt);
         paramMap.put("EMAIL", email);
         paramMap.put("MOBILE_NO", phone);
+        paramMap.put("TXN_AMOUNT", txn_amt);
         paramMap.put("THEME", "merchant");
 
         PaytmOrder order = new PaytmOrder(paramMap);
-        PaytmMerchant merchant = new PaytmMerchant(this.PAYTM_GENERATE_URL, this.PAYTM_VALIDATE_URL);
+        if(prod_env == "true"){
+            PaytmMerchant merchant = new PaytmMerchant(this.PAYTM_GENERATE_URL, this.PAYTM_VALIDATE_URL);
+            this.paytm_service.initialize(order, merchant, null);
+        }else{
+            PaytmMerchant merchant = new PaytmMerchant("http://www.example.com:8000/generate_checksum", "http://www.example.com:8000/verify_checksum");
+            this.paytm_service.initialize(order, merchant, null);
+        }
 
-        this.paytm_service.initialize(order, merchant, null);
         this.paytm_service.startPaymentTransaction(cordova.getActivity(), false, false, new PaytmPaymentTransactionCallback()
         {
 
             @Override
             public void onTransactionSuccess(Bundle inResponse) {
-                Log.i("Error", "onTransactionSuccess :" + inResponse);
-            // onTransactionSuccess :Bundle[{GATEWAYNAME=WALLET, PAYMENTMODE=PPI, TXNDATE=2015-02-19 17:01:42.0, STATUS=TXN_SUCCESS, MID=sumjkE62398232705701, CURRENCY=INR, ORDERID=5384643, TXNID=70013, IS_CHECKSUM_VALID=N, TXNAMOUNT=100.00, BANKTXNID=CC9795B5013489B9, BANKNAME=, RESPMSG=Txn Successful., RESPCODE=01, CHECKSUMHASH=8liiSa0uQ0S1lCALiQA3FsyQx6xMey9m8VrF+WZu1tTxG+72c3bU1UYZZg+j/UMS5w9F8iHXq051G4/XtVe4L7FSTk5PGnQpp4r6+QkuyWM=}]
+                Log.i("Success", "onTransactionSuccess :" + inResponse);
+            // onTransactionSuccess :Bundle[{GATEWAYNAME=WALLET, PAYMENTMODE=PPI, TXNDATE=2015-02-19 17:01:42.0, STATUS=TXN_SUCCESS, MID=, CURRENCY=INR, ORDERID=5384643, TXNID=70013, IS_CHECKSUM_VALID=N, TXNAMOUNT=100.00, BANKTXNID=, BANKNAME=, RESPMSG=Txn Successful., RESPCODE=01, CHECKSUMHASH=8liiSa0uQ0S1lCLiQA3FsyQx6xMey9m8VrF+WZu1tTxG+72c3bU1UYZZg+j/UMS5w9F8iHXq051G4/XtVe4L7FSTk5PGnQpp4r6+QkuyWM=}]
                 callbackContext.success(convertBundleToJson(inResponse,"Successful"));
             }
 

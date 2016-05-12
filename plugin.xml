@@ -25,6 +25,7 @@
   <preference name="MERCHANT_ID" />
   <preference name="INDUSTRY_TYPE_ID" />
   <preference name="WEBSITE" />
+  <preference name="CHANNEL_ID" />
 
   <engines>
     <engine name="cordova" version=">=3.0.0"/>
@@ -58,6 +59,9 @@
     <config-file target="*-Info.plist" parent="PayTMWebsite">
         <string>$WEBSITE</string>
     </config-file>
+    <config-file target="*-Info.plist" parent="PayTMWebsite">
+        <string>$CHANNEL_ID</string>
+    </config-file>
 
     <header-file src="src/ios/PayTM/Headers/PaymentsSDK.h"/>
     <header-file src="src/ios/PayTM/Headers/PGMerchantConfiguration.h"/>
@@ -87,6 +91,7 @@
         <string name="paytm_merchant_id">$MERCHANT_ID</string>
         <string name="paytm_industry_type_id">$INDUSTRY_TYPE_ID</string>
         <string name="paytm_website">$WEBSITE</string>
+        <string name="paytm_channel_id">$CHANNEL_ID</string>
     </config-file>
     
     <config-file target="AndroidManifest.xml" parent="application">

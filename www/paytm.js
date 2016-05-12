@@ -1,9 +1,9 @@
 module.exports = {
-  startPayment: function(orderId, customerId, email, phone, amount, successCallback, failureCallback) {
+  startPayment: function(orderId, customerId, email, phone, amount,prodEnv, successCallback, failureCallback) {
     cordova.exec(successCallback,
                  failureCallback, 
                  "PayTM",
                  "startPayment",
-                 [orderId, customerId, email, phone, amount]);
+                 [orderId, customerId, email, phone, amount,prodEnv]);
   }
 };
